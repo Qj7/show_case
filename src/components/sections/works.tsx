@@ -1,33 +1,37 @@
 import { ProjectCard } from "@/components/project-card";
 import { SectionHeading } from "@/components/section-heading";
-import { categories, projects, usedCategories } from "@/content/projects";
+import { projects, usedCategories } from "@/content/projects";
+import { getDictionary } from "@/i18n/get-dictionary";
 
-export function Works() {
+export async function Works() {
+  const dict = await getDictionary();
+  const t = dict.works;
   const sorted = [...projects].sort(
     (a, b) => Number(!!b.featured) - Number(!!a.featured) || b.year - a.year,
   );
   const filters = [
-    { id: "all", label: "Все" },
-    ...usedCategories().map((c) => ({ id: c, label: categories[c] })),
-    ...(projects.some((p) => p.ai) ? [{ id: "ai", label: "Сделано с AI" }] : []),
+    { id: "all", label: t.all },
+    ...usedCategories().map((c) => ({ id: c, label: dict.categories[c] })),
+    ...(projects.some((p) => p.ai) ? [{ id: "ai", label: t.ai }] : []),
   ];
 
   return (
     <section id="work" aria-labelledby="work-title" className="works mx-auto max-w-6xl px-6 py-24 md:py-32">
       <SectionHeading
         id="work-title"
-        eyebrow="Избранные работы"
+        eyebrow={t.eyebrow}
         title={
           <>
-            Проекты, которые <span className="text-gradient">уже работают</span>
+            {t.title}
+            <span className="text-gradient">{t.titleAccent}</span>
           </>
         }
-        text="Сайты, сервисы и приложения для бизнеса: от лендинга за неделю до продукта с личным кабинетом и интеграциями."
+        text={t.text}
       />
 
       {filters.length > 2 && (
         <fieldset className="reveal mb-10 flex flex-wrap gap-2">
-          <legend className="sr-only">Фильтр по типу проекта</legend>
+          <legend className="sr-only">{t.filterLegend}</legend>
           {filters.map((f) => (
             <label
               key={f.id}

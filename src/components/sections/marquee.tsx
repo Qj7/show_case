@@ -1,8 +1,11 @@
 import { stack } from "@/content/services";
+import { getDictionary } from "@/i18n/get-dictionary";
 
-export function Marquee() {
+export async function Marquee() {
+  const dict = await getDictionary();
+
   return (
-    <section aria-label="Технологии" className="border-y border-line bg-surface/50 py-6">
+    <section aria-label={dict.marquee.label} className="border-y border-line bg-surface/50 py-6">
       <div className="flex overflow-hidden [mask-image:linear-gradient(to_right,transparent,#000_10%,#000_90%,transparent)]">
         <ul className="flex shrink-0 animate-marquee items-center gap-12 pr-12 hover:[animation-play-state:paused]">
           {[...stack, ...stack].map((item, i) => (

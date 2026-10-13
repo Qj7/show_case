@@ -1,6 +1,8 @@
 import Image from "next/image";
 import type { Project } from "@/content/projects";
 import { asset } from "@/content/site";
+import { format } from "@/i18n/config";
+import { getDictionary } from "@/i18n/get-dictionary";
 
 type Props = {
   project: Project;
@@ -9,15 +11,16 @@ type Props = {
   className?: string;
 };
 
-export function ProjectCover({ project, priority, sizes = "(min-width: 768px) 50vw, 100vw", className = "" }: Props) {
+export async function ProjectCover({ project, priority, sizes = "(min-width: 768px) 50vw, 100vw", className = "" }: Props) {
   const [a, b] = project.accent;
 
   if (project.cover) {
+    const dict = await getDictionary();
     return (
       <div className={`relative overflow-hidden bg-elevated ${className}`}>
         <Image
           src={asset(project.cover)}
-          alt={`${project.title} — обложка проекта`}
+          alt={format(dict.project.cover, { title: project.title })}
           fill
           sizes={sizes}
           priority={priority}

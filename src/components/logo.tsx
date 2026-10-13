@@ -2,13 +2,13 @@ import Link from "next/link";
 import { useId } from "react";
 import { site } from "@/content/site";
 
-export function Logo() {
+export function Logo({ href, label }: { href: string; label: string }) {
   const uid = useId().replace(/:/g, "");
   const grad = `orbita-grad-${uid}`;
   const mask = `orbita-mask-${uid}`;
 
   return (
-    <Link href="/" className="flex items-center gap-2.5" aria-label={`${site.name} — на главную`}>
+    <Link href={href} className="flex items-center gap-2.5" aria-label={label}>
       <svg width="34" height="34" viewBox="0 0 48 48" aria-hidden className="shrink-0">
         <defs>
           <linearGradient id={grad} x1="32%" y1="100%" x2="68%" y2="0%">

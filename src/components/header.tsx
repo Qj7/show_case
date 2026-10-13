@@ -1,15 +1,76 @@
+"use client";
+
 import Link from "next/link";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { Logo } from "@/components/logo";
-import { MobileNav } from "@/components/mobile-nav";
-import { nav } from "@/content/site";
+import { site } from "@/content/site";
+import { localeHref, type Locale } from "@/i18n/config";
+import type { Dictionary } from "@/i18n/dictionaries/ru";
+import type { NavItem } from "@/i18n/get-dictionary";
 
-export function Header() {
+const MENU_ID = "mobile-menu";
+
+type Props = {
+  locale: Locale;
+  nav: NavItem[];
+  labels: Dictionary["header"];
+  homeLabel: string;
+};
+
+export function Header({ locale, nav, labels, homeLabel }: Props) {
+  const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const toggleRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const root = document.documentElement;
+    root.style.overflow = "hidden";
+
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setOpen(false);
+      toggleRef.current?.focus();
+    };
+    const desktop = window.matchMedia("(min-width: 48rem)");
+    const onBreakpoint = () => {
+      if (desktop.matches) setOpen(false);
+    };
+
+    document.addEventListener("keydown", onKey);
+    desktop.addEventListener("change", onBreakpoint);
+    return () => {
+      root.style.overflow = "";
+      document.removeEventListener("keydown", onKey);
+      desktop.removeEventListener("change", onBreakpoint);
+    };
+  }, [open]);
+
+  const closeOnLink = (event: MouseEvent<HTMLElement>) => {
+    if ((event.target as Element).closest("a")) setOpen(false);
+  };
+
+  const solid = scrolled || open;
+
   return (
-    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between rounded-full border border-line bg-bg/70 pr-2 pl-4 backdrop-blur-xl">
-        <Logo />
+    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4" onClick={closeOnLink}>
+      <div
+        className={`relative z-10 mx-auto flex h-14 max-w-6xl items-center justify-between rounded-full border pr-2 pl-4 backdrop-blur-xl transition-[background-color,border-color,box-shadow] duration-300 ${
+          solid ? "border-white/10 bg-bg/85 shadow-lg shadow-black/40" : "border-line bg-bg/60"
+        }`}
+      >
+        <Logo href={localeHref(locale)} label={homeLabel} />
 
-        <nav aria-label="Основная навигация" className="hidden md:block">
+        <nav aria-label={labels.mainNav} className="hidden md:block">
           <ul className="flex items-center gap-1 text-sm text-muted">
             {nav.map((item) => (
               <li key={item.href}>
@@ -25,43 +86,63 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/#contact"
-            className="hidden rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-black transition-transform hover:scale-[1.03] active:scale-95 sm:block"
-          >
-            Обсудить проект
-          </Link>
+          <LanguageSwitcher locale={locale} label={labels.language} />
           <button
+            ref={toggleRef}
             type="button"
-            popoverTarget="mobile-menu"
-            aria-label="Открыть меню"
-            className="grid size-10 place-items-center rounded-full border border-line md:hidden"
+            aria-expanded={open}
+            aria-controls={MENU_ID}
+            aria-label={open ? labels.closeMenu : labels.openMenu}
+            onClick={() => setOpen((value) => !value)}
+            className="grid size-10 place-items-center rounded-full border border-line transition-colors hover:bg-white/5 md:hidden"
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-              <path d="M4 8h16M4 16h16" />
-            </svg>
+            <span aria-hidden className="relative block h-3 w-[18px]">
+              <span
+                className={`absolute left-0 h-0.5 w-full rounded-full bg-current transition-all duration-300 ${
+                  open ? "top-[5px] rotate-45" : "top-0"
+                }`}
+              />
+              <span
+                className={`absolute left-0 h-0.5 w-full rounded-full bg-current transition-all duration-300 ${
+                  open ? "top-[5px] -rotate-45" : "top-2.5"
+                }`}
+              />
+            </span>
           </button>
         </div>
       </div>
 
-      <div id="mobile-menu" popover="auto" className="menu bg-bg/95 p-6 text-fg backdrop-blur-xl">
-        <div className="flex items-center justify-between">
-          <Logo />
-          <button
-            type="button"
-            popoverTarget="mobile-menu"
-            popoverTargetAction="hide"
-            aria-label="Закрыть меню"
-            className="grid size-10 place-items-center rounded-full border border-line"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-              <path d="M6 6l12 12M18 6L6 18" />
-            </svg>
-          </button>
-        </div>
-        <nav aria-label="Мобильная навигация" className="mt-16">
-          <MobileNav menuId="mobile-menu" />
+      <div
+        id={MENU_ID}
+        inert={!open}
+        className={`fixed inset-0 flex flex-col bg-bg/95 px-6 pt-32 pb-10 backdrop-blur-xl transition-opacity duration-300 md:hidden ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      >
+        <nav aria-label={labels.mobileNav}>
+          <ul className="space-y-2">
+            {nav.map((item, i) => (
+              <li
+                key={item.href}
+                style={{ transitionDelay: open ? `${60 + i * 50}ms` : "0ms" }}
+                className={`transition-[opacity,translate] duration-500 ${open ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"}`}
+              >
+                <Link href={item.href} className="block py-2 font-display text-4xl font-semibold">
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </nav>
+
+        <div className="mt-auto flex flex-col gap-3 border-t border-line pt-6 text-muted">
+          <a href={site.contacts.telegram} target="_blank" rel="noreferrer" className="transition-colors hover:text-fg">
+            Telegram
+          </a>
+          <a href={`mailto:${site.contacts.email}`} className="transition-colors hover:text-fg">
+            {site.contacts.email}
+          </a>
+        </div>
       </div>
     </header>
   );

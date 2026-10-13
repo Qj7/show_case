@@ -7,8 +7,13 @@ const nextConfig: NextConfig = {
   basePath,
   trailingSlash: true,
   poweredByHeader: false,
+  // Opening the dev server from a phone by LAN IP is cross-origin; without this the HMR socket is blocked and the page never hydrates.
+  allowedDevOrigins: ["10.*.*.*", "172.*.*.*", "192.168.*.*", "*.local"],
   images: {
     unoptimized: true,
+  },
+  experimental: {
+    globalNotFound: true,
   },
   turbopack: {
     rules: {

@@ -1,6 +1,10 @@
 import { site } from "@/content/site";
+import { getDictionary } from "@/i18n/get-dictionary";
 
-export function Contact() {
+export async function Contact() {
+  const dict = await getDictionary();
+  const t = dict.contact;
+
   return (
     <section id="contact" aria-labelledby="contact-title" className="relative isolate overflow-hidden px-6 py-28 md:py-40">
       <div aria-hidden className="absolute inset-0 -z-10">
@@ -9,13 +13,12 @@ export function Contact() {
       </div>
 
       <div className="reveal mx-auto max-w-4xl text-center">
-        <p className="mb-6 text-xs font-medium tracking-[0.2em] text-muted uppercase">Есть идея?</p>
+        <p className="mb-6 text-xs font-medium tracking-[0.2em] text-muted uppercase">{t.eyebrow}</p>
         <h2 id="contact-title" className="font-display text-[clamp(2.4rem,7vw,5rem)] leading-[1.02] font-semibold tracking-[-0.03em] text-balance">
-          Давайте сделаем <span className="text-gradient">что-то крутое</span>
+          {t.title}
+          <span className="text-gradient">{t.titleAccent}</span>
         </h2>
-        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted">
-          Расскажите о задаче: ответим в течение дня, предложим решение и оценим сроки. Бесплатно и без обязательств.
-        </p>
+        <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted">{t.text}</p>
 
         <div className="mt-12 flex flex-wrap justify-center gap-3">
           <a
@@ -27,7 +30,7 @@ export function Contact() {
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
               <path d="M21.9 4.3 18.7 19.5c-.2 1-.9 1.3-1.7.8l-4.7-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.8 8.8-7.9c.4-.3-.1-.5-.6-.2L6.6 13.4 2 12c-1-.3-1-1 .2-1.5L20.6 3.4c.8-.3 1.6.2 1.3.9z" />
             </svg>
-            Написать в Telegram
+            {t.telegram}
           </a>
           <a
             href={`mailto:${site.contacts.email}`}

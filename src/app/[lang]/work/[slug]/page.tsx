@@ -1,46 +1,55 @@
-import type { Metadata } from "next";
+import type { Metadata, ResolvingMetadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ProjectCover } from "@/components/project-cover";
 import { Contact } from "@/components/sections/contact";
-import { categories, getProject, projects } from "@/content/projects";
-import { asset } from "@/content/site";
+import { getProject, projects } from "@/content/projects";
+import { asset, site } from "@/content/site";
+import { format, localeHref, locales } from "@/i18n/config";
+import { getDictionary, getLocale } from "@/i18n/get-dictionary";
 
 export function generateStaticParams() {
   return projects.map((p) => ({ slug: p.slug }));
 }
 
-export async function generateMetadata({ params }: PageProps<"/work/[slug]">): Promise<Metadata> {
-  const { slug } = await params;
+export async function generateMetadata(
+  { params }: PageProps<"/[lang]/work/[slug]">,
+  parent: ResolvingMetadata,
+): Promise<Metadata> {
+  const [{ slug }, locale, previous] = await Promise.all([params, getLocale(), parent]);
   const project = getProject(slug);
   if (!project) return {};
+  const summary = project.summary[locale];
+  const path = `/work/${project.slug}/`;
   return {
     title: project.title,
-    description: project.summary,
-    openGraph: { title: project.title, description: project.summary },
+    description: summary,
+    alternates: {
+      canonical: `${site.url}${localeHref(locale, path)}`,
+      languages: Object.fromEntries(locales.map((l) => [l, `${site.url}${localeHref(l, path)}`])),
+    },
+    openGraph: { ...previous.openGraph, title: project.title, description: summary },
   };
 }
 
-const storyLabels = {
-  task: "Задача",
-  solution: "Решение",
-  result: "Результат",
-} as const;
+const storyKeys = ["task", "solution", "result"] as const;
 
-export default function ProjectPage({ params }: PageProps<"/work/[slug]">) {
+export default async function ProjectPage({ params }: PageProps<"/[lang]/work/[slug]">) {
+  const [locale, dict] = await Promise.all([getLocale(), getDictionary()]);
+
   return (
     <>
       <div className="mx-auto max-w-6xl px-6 pt-36 md:pt-44">
         <Link
-          href="/#work"
+          href={localeHref(locale, "#work")}
           className="inline-flex items-center gap-2 text-sm text-muted transition-colors hover:text-fg"
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
             <path d="M19 12H5M11 6l-6 6 6 6" />
           </svg>
-          Все работы
+          {dict.project.back}
         </Link>
         <Suspense fallback={<CaseSkeleton />}>
           {params.then(({ slug }) => (
@@ -64,19 +73,25 @@ function CaseSkeleton() {
   );
 }
 
-function ProjectCase({ slug }: { slug: string }) {
+async function ProjectCase({ slug }: { slug: string }) {
   const project = getProject(slug);
   if (!project) notFound();
 
+  const [locale, dict] = await Promise.all([getLocale(), getDictionary()]);
+  const t = dict.project;
+
   const index = projects.indexOf(project);
   const next = projects[(index + 1) % projects.length];
-  const story = Object.entries(project.story ?? {}).filter(([, v]) => v) as [keyof typeof storyLabels, string][];
+  const story = storyKeys.flatMap((key) => {
+    const text = project.story?.[key]?.[locale];
+    return text ? [{ key, text }] : [];
+  });
 
   const meta = [
-    { label: "Год", value: String(project.year) },
-    { label: "Тип", value: project.categories.map((c) => categories[c]).join(", ") },
-    project.role && { label: "Роль", value: project.role },
-    project.client && { label: "Клиент", value: project.client },
+    { label: t.year, value: String(project.year) },
+    { label: t.type, value: project.categories.map((c) => dict.categories[c]).join(", ") },
+    project.role && { label: t.role, value: project.role[locale] },
+    project.client && { label: t.client, value: project.client },
   ].filter(Boolean) as { label: string; value: string }[];
 
   return (
@@ -85,13 +100,13 @@ function ProjectCase({ slug }: { slug: string }) {
         <div>
           {project.ai && (
             <p className="mb-5 inline-flex rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs text-accent">
-              Сделано с AI-агентами в Cursor
+              {t.aiBadge}
             </p>
           )}
           <h1 className="font-display text-[clamp(2.6rem,7vw,5.5rem)] leading-[1] font-semibold tracking-[-0.03em]">
             {project.title}
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted md:text-xl">{project.summary}</p>
+          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted md:text-xl">{project.summary[locale]}</p>
         </div>
         {project.url && (
           <a
@@ -100,7 +115,7 @@ function ProjectCase({ slug }: { slug: string }) {
             rel="noreferrer"
             className="group inline-flex items-center gap-2 justify-self-start rounded-full bg-accent px-7 py-4 font-semibold text-black transition-transform hover:scale-[1.03] md:justify-self-end"
           >
-            Открыть сайт
+            {t.openSite}
             <svg
               width="18"
               height="18"
@@ -135,7 +150,7 @@ function ProjectCase({ slug }: { slug: string }) {
 
       <div className="mt-20 grid gap-14 md:grid-cols-[1fr_2fr]">
         <div>
-          <h2 className="text-xs tracking-widest text-muted uppercase">Стек</h2>
+          <h2 className="text-xs tracking-widest text-muted uppercase">{t.stack}</h2>
           <ul className="mt-5 flex flex-wrap gap-2">
             {project.stack.map((s) => (
               <li key={s} className="rounded-full border border-line px-3 py-1.5 text-sm">
@@ -147,9 +162,9 @@ function ProjectCase({ slug }: { slug: string }) {
 
         {story.length > 0 && (
           <div className="space-y-12">
-            {story.map(([key, text]) => (
+            {story.map(({ key, text }) => (
               <section key={key} className="reveal">
-                <h2 className="font-display text-2xl font-semibold">{storyLabels[key]}</h2>
+                <h2 className="font-display text-2xl font-semibold">{t[key]}</h2>
                 <p className="mt-4 text-lg leading-relaxed text-muted">{text}</p>
               </section>
             ))}
@@ -166,7 +181,7 @@ function ProjectCase({ slug }: { slug: string }) {
             >
               <Image
                 src={asset(src)}
-                alt={`${project.title} — экран ${i + 1}`}
+                alt={format(t.screen, { title: project.title, n: i + 1 })}
                 fill
                 sizes="(min-width: 768px) 50vw, 100vw"
                 className="object-cover"
@@ -177,12 +192,12 @@ function ProjectCase({ slug }: { slug: string }) {
       )}
 
       <Link
-        href={`/work/${next.slug}`}
+        href={localeHref(locale, `/work/${next.slug}/`)}
         prefetch
         className="card-glow group mt-28 flex items-center justify-between gap-6 rounded-3xl border border-line bg-surface p-8 transition-colors hover:bg-elevated md:p-12"
       >
         <div>
-          <p className="text-xs tracking-widest text-muted uppercase">Следующий проект</p>
+          <p className="text-xs tracking-widest text-muted uppercase">{t.next}</p>
           <p className="mt-3 font-display text-3xl font-semibold tracking-tight md:text-5xl">{next.title}</p>
         </div>
         <span className="grid size-14 shrink-0 place-items-center rounded-full border border-line transition-all duration-300 group-hover:border-accent group-hover:bg-accent group-hover:text-black">
