@@ -1,3 +1,4 @@
+import { PeekingCat } from "@/components/peeking-cat";
 import { site } from "@/content/site";
 import { getDictionary } from "@/i18n/get-dictionary";
 
@@ -6,13 +7,10 @@ export async function Contact() {
   const t = dict.contact;
 
   return (
-    <section id="contact" aria-labelledby="contact-title" className="relative isolate overflow-hidden px-6 py-28 md:py-40">
-      <div aria-hidden className="absolute inset-0 -z-10">
-        <div className="absolute bottom-[-30%] left-1/2 size-[50rem] -translate-x-1/2 rounded-full bg-violet/25 blur-[140px]" />
-        <div className="grid-bg absolute inset-0 rotate-180" />
-      </div>
+    <section id="contact" aria-labelledby="contact-title" className="relative isolate overflow-hidden bg-black px-6 py-28 md:py-40">
+      <PeekingCat />
 
-      <div className="reveal mx-auto max-w-4xl text-center">
+      <div className="reveal relative z-10 mx-auto max-w-4xl text-center">
         <p className="mb-6 text-xs font-medium tracking-[0.2em] text-muted uppercase">{t.eyebrow}</p>
         <h2 id="contact-title" className="font-display text-[clamp(2.4rem,7vw,5rem)] leading-[1.02] font-semibold tracking-[-0.03em] text-balance">
           {t.title}
