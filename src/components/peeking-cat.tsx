@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { asset } from "@/content/site";
 
 const EAR_VISIBLE = 0.13;
 const EAR_SHIFT = 62;
@@ -64,7 +65,7 @@ export function PeekingCat() {
         onPointerCancel={finish}
         className="block w-full cursor-grab touch-none appearance-none border-0 bg-transparent p-0 select-none active:cursor-grabbing"
       >
-        <img src="/cat.png" alt="" width={267} height={350} draggable={false} className="pointer-events-none block h-auto w-full" />
+        <img src={asset("/cat.png")} alt="" width={267} height={350} draggable={false} className="pointer-events-none block h-auto w-full" />
       </button>
     </div>
   );
