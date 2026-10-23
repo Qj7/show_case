@@ -45,6 +45,10 @@ export const en: Dictionary = {
   marquee: {
     label: "Technologies",
   },
+  galaxy: {
+    wheel: "Hold Ctrl or ⌘ and scroll to zoom",
+    touch: "Use two fingers to zoom",
+  },
   categories: {
     web: "Web",
     mobile: "Mobile",

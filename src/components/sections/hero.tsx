@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { Galaxy } from "@/components/galaxy";
 import { site } from "@/content/site";
-import { VantaBackground } from "@/components/vanta-background";
 import { format, localeHref } from "@/i18n/config";
 import { getDictionary, getLocale } from "@/i18n/get-dictionary";
 
@@ -33,45 +33,78 @@ export async function Hero() {
   const years = site.copyrightYear - site.since;
 
   return (
-    <section className="noise relative isolate overflow-hidden pt-36 pb-20 md:pt-44 md:pb-28">
-      <div aria-hidden className="absolute inset-0 -z-10">
-        <div className="absolute top-[-20%] left-[10%] size-[42rem] animate-aurora rounded-full bg-violet/30 blur-[120px]" />
-        <div className="absolute top-[10%] right-[-10%] size-[32rem] animate-aurora rounded-full bg-blue-600/25 blur-[120px] [animation-delay:-6s]" />
-        <VantaBackground />
+    <section className="relative bg-black">
+      <div id="hero-orbit" className="relative min-h-svh overflow-hidden">
+        <Galaxy hints={dict.galaxy} variant="hero" />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-32 bg-gradient-to-b from-black via-black/70 to-transparent"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[64%] bg-[linear-gradient(to_top,#000_0%,rgb(0_0_0/0.82)_30%,rgb(0_0_0/0.35)_62%,transparent_100%)] md:h-[52%]"
+        />
+
+        <div className="pointer-events-none relative z-10 mx-auto flex min-h-svh max-w-6xl flex-col justify-end px-6 pt-28 pb-14 md:pb-16">
+          <div aria-hidden className="min-h-[12svh] flex-1 md:min-h-[20svh]" />
+          <div className="pointer-events-auto max-w-4xl">
+            <h1 className="max-w-5xl font-display text-[clamp(2.4rem,6vw,5rem)] leading-[1.02] font-semibold tracking-[-0.03em] text-balance [text-shadow:0_10px_40px_rgb(0_0_0/0.85)]">
+              {t.title}
+            </h1>
+
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted [text-shadow:0_8px_28px_rgb(0_0_0/0.9)] md:mt-8 md:text-xl">
+              {t.lead}
+            </p>
+
+            <div className="mt-8 flex flex-wrap gap-3 md:mt-10">
+              <Link
+                href={localeHref(locale, "#contact")}
+                className="group inline-flex items-center gap-2 rounded-full bg-accent px-7 py-4 font-semibold text-black transition-transform hover:scale-[1.03] active:scale-95"
+              >
+                {t.cta}
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  aria-hidden
+                  className="transition-transform group-hover:translate-x-1"
+                >
+                  <path d="M5 12h14M13 6l6 6-6 6" />
+                </svg>
+              </Link>
+              <Link
+                href={localeHref(locale, "#work")}
+                className="inline-flex items-center rounded-full border border-white/15 bg-white/[0.04] px-7 py-4 font-semibold backdrop-blur transition-colors hover:bg-white/[0.1]"
+              >
+                {t.secondary}
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="mx-auto max-w-6xl px-6">
-        <h1 className="max-w-5xl font-display text-[clamp(2.4rem,7vw,5.6rem)] leading-[1.02] font-semibold tracking-[-0.03em] text-balance">
-          {t.title}
-        </h1>
-
-        <p className="mt-8 max-w-2xl text-lg leading-relaxed text-muted md:text-xl">{t.lead}</p>
-
-        <div className="mt-10 flex flex-wrap gap-3">
-          <Link
-            href={localeHref(locale, "#contact")}
-            className="group inline-flex items-center gap-2 rounded-full bg-accent px-7 py-4 font-semibold text-black transition-transform hover:scale-[1.03] active:scale-95"
-          >
-            {t.cta}
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden className="transition-transform group-hover:translate-x-1">
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-          </Link>
-          <Link
-            href={localeHref(locale, "#work")}
-            className="inline-flex items-center rounded-full border border-line bg-white/[0.03] px-7 py-4 font-semibold backdrop-blur transition-colors hover:bg-white/[0.08]"
-          >
-            {t.secondary}
-          </Link>
-        </div>
-
-        <ul className="mt-20 grid grid-cols-2 gap-3 md:grid-cols-4">
+      <div className="relative z-10 mx-auto max-w-6xl px-6 pt-4 pb-20">
+        <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {platforms.map((p) => (
             <li
               key={p.id}
               className="rounded-2xl border border-line bg-white/[0.02] p-5 backdrop-blur transition-colors hover:border-white/20"
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className="text-accent" aria-hidden>
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-accent"
+                aria-hidden
+              >
                 {p.icon}
               </svg>
               <p className="mt-5 font-semibold">{p.label}</p>

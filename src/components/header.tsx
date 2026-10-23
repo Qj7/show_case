@@ -20,14 +20,27 @@ type Props = {
 
 export function Header({ locale, nav, labels, homeLabel }: Props) {
   const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const [pastOrbit, setPastOrbit] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const orbit = document.getElementById("hero-orbit");
+
+    const update = () => {
+      if (!orbit) {
+        setPastOrbit(window.scrollY > 8);
+        return;
+      }
+      setPastOrbit(orbit.getBoundingClientRect().bottom <= 72);
+    };
+
+    update();
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", update, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
   }, []);
 
   useEffect(() => {
@@ -59,13 +72,15 @@ export function Header({ locale, nav, labels, homeLabel }: Props) {
     if ((event.target as Element).closest("a")) setOpen(false);
   };
 
-  const solid = scrolled || open;
+  const solid = pastOrbit || open;
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4" onClick={closeOnLink}>
       <div
-        className={`relative z-10 mx-auto flex h-14 max-w-6xl items-center justify-between rounded-full border pr-2 pl-4 backdrop-blur-xl transition-[background-color,border-color,box-shadow] duration-300 ${
-          solid ? "border-white/10 bg-bg/85 shadow-lg shadow-black/40" : "border-line bg-bg/60"
+        className={`relative z-10 mx-auto flex h-14 max-w-6xl items-center justify-between rounded-full border pr-2 pl-4 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ${
+          solid
+            ? "border-white/10 bg-bg/85 shadow-lg shadow-black/40 backdrop-blur-xl"
+            : "border-white/15 bg-transparent shadow-none backdrop-blur-none"
         }`}
       >
         <Logo href={localeHref(locale)} label={homeLabel} />

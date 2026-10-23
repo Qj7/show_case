@@ -45,6 +45,10 @@ export const vi: Dictionary = {
   marquee: {
     label: "Công nghệ",
   },
+  galaxy: {
+    wheel: "Giữ Ctrl hoặc ⌘ và cuộn để thu phóng",
+    touch: "Dùng hai ngón tay để thu phóng",
+  },
   categories: {
     web: "Web",
     mobile: "Di động",
