@@ -28,6 +28,7 @@ export const en: Dictionary = {
     lead: "A team of designers and developers. We build web, mobile and desktop products, from idea and prototype to release and support.",
     cta: "Discuss a project",
     secondary: "View our work",
+    scroll: "Next section",
     platforms: {
       web: "Websites and services",
       mobile: "Mobile apps",

@@ -28,6 +28,7 @@ export const es: Dictionary = {
     lead: "Un equipo de diseñadores y desarrolladores. Creamos productos web, móviles y de escritorio: de la idea y el prototipo al lanzamiento y el soporte.",
     cta: "Hablemos de tu proyecto",
     secondary: "Ver proyectos",
+    scroll: "Siguiente sección",
     platforms: {
       web: "Sitios y servicios",
       mobile: "Aplicaciones móviles",

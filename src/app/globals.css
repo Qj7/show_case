@@ -14,6 +14,7 @@
   --font-display: var(--font-unbounded), var(--font-manrope), ui-sans-serif, sans-serif;
   --animate-marquee: marquee 40s linear infinite;
   --animate-aurora: aurora 18s ease-in-out infinite alternate;
+  --animate-scroll-cue: scroll-cue 1.25s ease-in-out infinite;
 
   @keyframes marquee {
     to {
@@ -31,6 +32,18 @@
     100% {
       transform: translate3d(-2%, 6%, 0) scale(0.95);
     }
+  }
+
+}
+
+@keyframes scroll-cue {
+  0% {
+    transform: translateY(-7px);
+    opacity: 0.65;
+  }
+  100% {
+    transform: translateY(8px);
+    opacity: 1;
   }
 }
 

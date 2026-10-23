@@ -28,6 +28,7 @@ export const vi: Dictionary = {
     lead: "Đội ngũ nhà thiết kế và lập trình viên. Chúng tôi làm sản phẩm web, di động và máy tính: từ ý tưởng, nguyên mẫu đến phát hành và hỗ trợ.",
     cta: "Thảo luận dự án",
     secondary: "Xem dự án",
+    scroll: "Phần tiếp theo",
     platforms: {
       web: "Website và dịch vụ",
       mobile: "Ứng dụng di động",

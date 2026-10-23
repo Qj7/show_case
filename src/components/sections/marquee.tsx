@@ -1,5 +1,17 @@
+import { stackIcons } from "@/components/stack-icons";
 import { stack } from "@/content/services";
 import { getDictionary } from "@/i18n/get-dictionary";
+
+function StackIcon({ name }: { name: string }) {
+  const icon = stackIcons[name];
+  if (!icon) return null;
+
+  return (
+    <svg viewBox="0 0 24 24" className="size-[1.15em] shrink-0" aria-hidden>
+      <path fill={icon.color} d={icon.path} />
+    </svg>
+  );
+}
 
 export async function Marquee() {
   const dict = await getDictionary();
@@ -12,10 +24,10 @@ export async function Marquee() {
             <li
               key={i}
               aria-hidden={i >= stack.length || undefined}
-              className="flex items-center gap-12 font-display text-lg whitespace-nowrap text-muted"
+              className="flex items-center gap-2.5 font-display text-lg whitespace-nowrap text-muted"
             >
+              <StackIcon name={item} />
               {item}
-              <span className="size-1.5 rounded-full bg-accent/60" />
             </li>
           ))}
         </ul>

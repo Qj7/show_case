@@ -42,11 +42,11 @@ export async function Hero() {
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[64%] bg-[linear-gradient(to_top,#000_0%,rgb(0_0_0/0.82)_30%,rgb(0_0_0/0.35)_62%,transparent_100%)] md:h-[52%]"
+          className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[74%] bg-[linear-gradient(to_top,#000_0%,rgb(0_0_0/0.82)_28%,rgb(0_0_0/0.4)_58%,transparent_100%)] md:h-[64%]"
         />
 
-        <div className="pointer-events-none relative z-10 mx-auto flex min-h-svh max-w-6xl flex-col justify-end px-6 pt-28 pb-14 md:pb-16">
-          <div aria-hidden className="min-h-[12svh] flex-1 md:min-h-[20svh]" />
+        <div className="pointer-events-none relative z-10 mx-auto flex min-h-svh max-w-6xl flex-col px-6 pt-28 pb-6 md:pb-8">
+          <div aria-hidden className="flex-[1.15]" />
           <div className="pointer-events-auto max-w-4xl">
             <h1 className="max-w-5xl font-display text-[clamp(2.4rem,6vw,5rem)] leading-[1.02] font-semibold tracking-[-0.03em] text-balance [text-shadow:0_10px_40px_rgb(0_0_0/0.85)]">
               {t.title}
@@ -83,10 +83,32 @@ export async function Hero() {
               </Link>
             </div>
           </div>
+
+          <a
+            href="#platforms"
+            className="pointer-events-auto mt-6 self-center p-2 text-white/80 transition-colors hover:text-white md:mt-8"
+          >
+            <span className="sr-only">{t.scroll}</span>
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+              className="animate-scroll-cue"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </a>
+          <div aria-hidden className="flex-[0.55]" />
         </div>
       </div>
 
-      <div className="relative z-10 mx-auto max-w-6xl px-6 pt-4 pb-20">
+      <div id="platforms" className="relative z-10 mx-auto max-w-6xl px-6 pt-4 pb-20">
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
           {platforms.map((p) => (
             <li
