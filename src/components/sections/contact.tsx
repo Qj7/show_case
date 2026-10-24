@@ -8,9 +8,9 @@ export async function Contact() {
   const t = dict.contact;
 
   return (
-    <section id="contact" aria-labelledby="contact-title" className="relative isolate overflow-hidden bg-black">
-      <div className="relative flex flex-col-reverse lg:grid lg:min-h-[100svh] lg:grid-cols-2">
-        <div className="relative flex items-center px-6 py-28 md:py-40 lg:px-12 lg:py-24 xl:px-16">
+    <section id="contact" aria-labelledby="contact-title" className="relative isolate bg-black">
+      <div className="relative flex flex-col-reverse lg:block lg:min-h-[100svh]">
+        <div className="relative z-20 flex items-center px-6 py-28 md:py-40 lg:ml-auto lg:min-h-[100svh] lg:w-1/2 lg:px-12 lg:py-24 xl:px-16">
           <PeekingCat />
 
           <div className="reveal relative z-20 mx-auto w-full max-w-xl text-center lg:max-w-2xl">

@@ -176,6 +176,11 @@ export function mountMorphScene(el: HTMLElement, { animate }: { animate: boolean
     const pixelRatio = Math.min(window.devicePixelRatio, 2);
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
+    // Wide figures stay fully inside the frame. On a wide desktop the distance
+    // stays at the template value; a narrower canvas only backs the camera up.
+    const tan = Math.tan((camera.fov * Math.PI) / 360);
+    const aspect = camera.aspect || 1;
+    camera.position.z = -Math.max(4, 2.55 / (tan * aspect), 1.55 / tan);
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width, height);
     composer.setPixelRatio(pixelRatio);
@@ -311,7 +316,7 @@ export function mountMorphScene(el: HTMLElement, { animate }: { animate: boolean
         renderMaterial.uniforms.uTime.value = elapsed;
         horseMaterial.uniforms.uTime.value = elapsed;
         mixer.update(delta);
-        camera.position.x += (cursor.x * 0.5 - camera.position.x) * 5 * delta;
+        camera.position.x += (0.45 + cursor.x * 0.35 - camera.position.x) * 5 * delta;
         camera.position.y += (-cursor.y * 0.5 - camera.position.y) * 5 * delta;
       }
       applyScroll(scroll);
