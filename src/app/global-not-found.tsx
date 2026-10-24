@@ -16,8 +16,8 @@ export const metadata: Metadata = {
 
 export default function GlobalNotFound() {
   return (
-    <html lang={defaultLocale} className={`${fontVariables} antialiased`}>
-      <body className="min-h-dvh">
+    <html lang={defaultLocale} className={`${fontVariables} antialiased`} suppressHydrationWarning>
+      <body className="min-h-dvh" suppressHydrationWarning>
         <GlobalNotFoundContent
           texts={{ ru: ru.notFound, en: en.notFound, vi: vi.notFound, es: es.notFound }}
         />

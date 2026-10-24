@@ -48,6 +48,12 @@ const DEFINES = {
 // Hold on the model figures. The template's in-between state is an unbound particle cloud.
 const STOPS = [0, RANGE, RANGE * 2, RANGE * 3, 1, RANGE * 3, RANGE * 2, RANGE];
 const HOLD = 3.2;
+// The camera looks from -Z, so world +X is screen-left. A positive camera X
+// slides every figure toward the text; the boy is wide enough to pass under it.
+const CAMERA_X = 0.45;
+const CAMERA_PARALLAX_X = 0.18;
+// Half-width of the horse, the widest of the small figures, including its yaw sway.
+const SMALL_FIGURE_HALF = 1.05;
 
 const modelUrl = (name: string) => asset(`/morph/models/${name}.glb`);
 
@@ -86,6 +92,96 @@ function makeTexture(geometry: BufferGeometryType) {
     data[i * 4 + 2] = source[i * 3 + 2];
   }
 
+  const texture = new DataTexture(data, texWidth, texHeight, RGBAFormat, FloatType);
+  texture.magFilter = NearestFilter;
+  texture.minFilter = NearestFilter;
+  texture.generateMipmaps = false;
+  texture.flipY = false;
+  texture.colorSpace = LinearSRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function starPoints(count: number, radius: number) {
+  const outer = radius;
+  const inner = radius * 0.38;
+  const ring: { x: number; y: number }[] = [];
+  for (let i = 0; i < 10; i++) {
+    const r = i % 2 === 0 ? outer : inner;
+    const angle = Math.PI / 2 + (i * Math.PI) / 5;
+    ring.push({ x: Math.cos(angle) * r, y: Math.sin(angle) * r });
+  }
+  const tris: { ax: number; ay: number; bx: number; by: number; area: number }[] = [];
+  let total = 0;
+  for (let i = 0; i < ring.length; i++) {
+    const next = ring[(i + 1) % ring.length];
+    const area = Math.abs(ring[i].x * next.y - next.x * ring[i].y) * 0.5;
+    tris.push({ ax: ring[i].x, ay: ring[i].y, bx: next.x, by: next.y, area });
+    total += area;
+  }
+  const out = new Float32Array(count * 3);
+  for (let n = 0; n < count; n++) {
+    let pick = Math.random() * total;
+    let tri = tris[0];
+    for (const candidate of tris) {
+      pick -= candidate.area;
+      if (pick <= 0) {
+        tri = candidate;
+        break;
+      }
+    }
+    let u = Math.random();
+    let v = Math.random();
+    if (u + v > 1) {
+      u = 1 - u;
+      v = 1 - v;
+    }
+    out[n * 3] = tri.ax * u + tri.bx * v;
+    out[n * 3 + 1] = tri.ay * u + tri.by * v;
+    out[n * 3 + 2] = (Math.random() - 0.5) * radius * 0.06;
+  }
+  return out;
+}
+
+function makeTreeTexture(geometry: BufferGeometryType) {
+  geometry.computeBoundingBox();
+  const tip = geometry.boundingBox!.max.y;
+  const radius = 0.22;
+  const count = 1100;
+  const star = starPoints(count, radius);
+  // Sit the star on the tip, overlapping it the way the 2 overlaps the E.
+  const offsetY = tip + radius * 0.42;
+  for (let i = 0; i < count; i++) star[i * 3 + 1] += offsetY;
+
+  const source = geometry.attributes.position.array as Float32Array;
+  shuffleArrayByThree(source);
+  const treeCount = geometry.attributes.position.count;
+  const total = treeCount + count;
+  const texWidth = Math.ceil(Math.sqrt(total));
+  const texHeight = Math.ceil(total / texWidth);
+  const data = new Float32Array(texWidth * texHeight * 4);
+  const order = Array.from({ length: total }, (_, index) => index);
+  for (let i = total - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const swap = order[i];
+    order[i] = order[j];
+    order[j] = swap;
+  }
+  for (let i = 0; i < total; i++) {
+    const src = order[i];
+    const out = i * 4;
+    if (src < treeCount) {
+      data[out] = source[src * 3];
+      data[out + 1] = source[src * 3 + 1];
+      data[out + 2] = source[src * 3 + 2];
+    } else {
+      const starIndex = (src - treeCount) * 3;
+      data[out] = star[starIndex];
+      data[out + 1] = star[starIndex + 1];
+      data[out + 2] = star[starIndex + 2];
+      data[out + 3] = 1;
+    }
+  }
   const texture = new DataTexture(data, texWidth, texHeight, RGBAFormat, FloatType);
   texture.magFilter = NearestFilter;
   texture.minFilter = NearestFilter;
@@ -166,6 +262,8 @@ export function mountMorphScene(el: HTMLElement, { animate }: { animate: boolean
   let width = 0;
   let height = 0;
   const disposables: { dispose: () => void }[] = [];
+  const sideShift = { value: 0 };
+  const desktop = window.matchMedia("(min-width: 1024px)");
 
   const resize = () => {
     const nextWidth = el.clientWidth;
@@ -180,7 +278,14 @@ export function mountMorphScene(el: HTMLElement, { animate }: { animate: boolean
     // stays at the template value; a narrower canvas only backs the camera up.
     const tan = Math.tan((camera.fov * Math.PI) / 360);
     const aspect = camera.aspect || 1;
-    camera.position.z = -Math.max(4, 2.55 / (tan * aspect), 1.55 / tan);
+    const distance = Math.max(4, 2.55 / (tan * aspect), 1.55 / tan);
+    camera.position.z = -distance;
+    const halfWidth = distance * tan * aspect;
+    // Positive world X is screen-left. Park the horse's right edge left of the
+    // text, and keep its left edge inside the frame when parallax pulls that way.
+    const desiredShift = CAMERA_X + 0.18 * halfWidth + SMALL_FIGURE_HALF;
+    const maxShift = CAMERA_X - CAMERA_PARALLAX_X + 0.9 * halfWidth - SMALL_FIGURE_HALF;
+    sideShift.value = desktop.matches ? Math.max(0, Math.min(desiredShift, maxShift)) : 0;
     renderer.setPixelRatio(pixelRatio);
     renderer.setSize(width, height);
     composer.setPixelRatio(pixelRatio);
@@ -205,8 +310,59 @@ export function mountMorphScene(el: HTMLElement, { animate }: { animate: boolean
     boyGeometry.rotateZ(Math.PI / 3);
 
     const e2Geometry = geometryAt(e2.scene, 0);
-    e2Geometry.scale(4, 4, 4);
-    e2Geometry.rotateY(-Math.PI / 6);
+    e2Geometry.scale(3.7, 3.7, 3.7);
+    e2Geometry.computeBoundingBox();
+    const e2Center = e2Geometry.boundingBox!.getCenter(new Vector3());
+    e2Geometry.translate(-e2Center.x, -e2Center.y, -e2Center.z);
+    // The digit is modeled floating beside the letter. Pull it onto the top
+    // corner so the mark reads as one E2 instead of two separate blocks.
+    const e2Array = e2Geometry.attributes.position.array as Float32Array;
+    const digit: number[] = [];
+    for (let i = 0; i < e2Array.length; i += 3) {
+      if (e2Array[i] < -0.2 || e2Array[i + 1] > 0.46) digit.push(i);
+    }
+    let digitX = 0;
+    let digitY = 0;
+    let digitZ = 0;
+    for (const i of digit) {
+      digitX += e2Array[i];
+      digitY += e2Array[i + 1];
+      digitZ += e2Array[i + 2];
+    }
+    digitX /= digit.length;
+    digitY /= digit.length;
+    digitZ /= digit.length;
+    const digitScale = 0.88;
+    let digitMaxX = -Infinity;
+    let digitMinY = Infinity;
+    for (const i of digit) {
+      e2Array[i] = (e2Array[i] - digitX) * digitScale + digitX;
+      e2Array[i + 1] = (e2Array[i + 1] - digitY) * digitScale + digitY;
+      e2Array[i + 2] = (e2Array[i + 2] - digitZ) * digitScale;
+      digitMaxX = Math.max(digitMaxX, e2Array[i]);
+      digitMinY = Math.min(digitMinY, e2Array[i + 1]);
+    }
+    const seatX = -0.02 - digitMaxX;
+    const seatY = 0.22 - digitMinY;
+    for (const i of digit) {
+      e2Array[i] += seatX;
+      e2Array[i + 1] += seatY;
+    }
+    // The source mesh is laid out in contour rings. A small jitter turns those
+    // rings into the same even particle fill as the other figures.
+    let jitter = 1;
+    for (let i = 0; i < e2Array.length; i += 3) {
+      jitter = (jitter * 16807) % 2147483647;
+      e2Array[i] += (jitter / 2147483647 - 0.5) * 0.04;
+      jitter = (jitter * 16807) % 2147483647;
+      e2Array[i + 1] += (jitter / 2147483647 - 0.5) * 0.04;
+      jitter = (jitter * 16807) % 2147483647;
+      e2Array[i + 2] += (jitter / 2147483647 - 0.5) * 0.02;
+    }
+    e2Geometry.computeBoundingBox();
+    const seated = e2Geometry.boundingBox!.getCenter(new Vector3());
+    e2Geometry.translate(-seated.x, -seated.y, -seated.z);
+    e2Geometry.rotateY(-0.1);
 
     const oniGeometry = geometryAt(oni.scene, 0);
     oniGeometry.scale(0.3, 0.3, 0.3);
@@ -223,7 +379,7 @@ export function mountMorphScene(el: HTMLElement, { animate }: { animate: boolean
     const textureB = makeTexture(oniGeometry);
     const textureC = makeTexture(e2Geometry);
     const textureD = randomTexture(FBO_SIZE, FBO_SIZE, 30);
-    const textureE = makeTexture(treeGeometry);
+    const textureE = makeTreeTexture(treeGeometry);
 
     const simMaterial = new ShaderMaterial({
       uniforms: {
@@ -235,6 +391,7 @@ export function mountMorphScene(el: HTMLElement, { animate }: { animate: boolean
         uTime: { value: 0 },
         uScroll: { value: 0 },
         uTreePos: { value: new Vector3() },
+        uShift: sideShift,
       },
       defines: DEFINES,
       vertexShader: simVertex,
@@ -269,6 +426,7 @@ export function mountMorphScene(el: HTMLElement, { animate }: { animate: boolean
         uTime: { value: 0 },
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
         uScroll: { value: 0 },
+        uShift: sideShift,
       },
       defines: DEFINES,
       vertexShader: horseVertex,
@@ -316,7 +474,7 @@ export function mountMorphScene(el: HTMLElement, { animate }: { animate: boolean
         renderMaterial.uniforms.uTime.value = elapsed;
         horseMaterial.uniforms.uTime.value = elapsed;
         mixer.update(delta);
-        camera.position.x += (0.45 + cursor.x * 0.35 - camera.position.x) * 5 * delta;
+        camera.position.x += (CAMERA_X + cursor.x * CAMERA_PARALLAX_X - camera.position.x) * 5 * delta;
         camera.position.y += (-cursor.y * 0.5 - camera.position.y) * 5 * delta;
       }
       applyScroll(scroll);

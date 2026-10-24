@@ -25,8 +25,10 @@ export const viewport: Viewport = {
 
 export default function RootRedirectLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang={defaultLocale} className={`${fontVariables} antialiased`}>
-      <body className="min-h-dvh">{children}</body>
+    <html lang={defaultLocale} className={`${fontVariables} antialiased`} suppressHydrationWarning>
+      <body className="min-h-dvh" suppressHydrationWarning>
+        {children}
+      </body>
     </html>
   );
 }

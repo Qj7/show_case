@@ -48,8 +48,8 @@ export default async function LocaleLayout({ children }: LayoutProps<"/[lang]">)
   const [locale, dict, nav] = await Promise.all([getLocale(), getDictionary(), getNav()]);
 
   return (
-    <html lang={locale} className={`${fontVariables} antialiased`}>
-      <body className="flex min-h-dvh flex-col">
+    <html lang={locale} className={`${fontVariables} antialiased`} suppressHydrationWarning>
+      <body className="flex min-h-dvh flex-col" suppressHydrationWarning>
         <a
           href="#main"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-full focus:bg-accent focus:px-4 focus:py-2 focus:text-black"
