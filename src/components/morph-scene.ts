@@ -192,14 +192,89 @@ function makeTreeTexture(geometry: BufferGeometryType) {
   return texture;
 }
 
-// The equation uses the original E2 mesh. E and the superscript 2 are that
-// model; the other marks are extruded to the same depth.
-function formulaFromE2(geometry: BufferGeometryType) {
-  geometry.scale(3.7, 3.7, 3.7);
-  geometry.computeBoundingBox();
-  const center = geometry.boundingBox!.getCenter(new Vector3());
-  geometry.translate(-center.x, -center.y, -center.z);
-  const src = geometry.attributes.position.array as Float32Array;
+const FORMULA_HAND_FONT = "FormulaHand";
+let formulaHandFontPromise: Promise<void> | null = null;
+
+function ensureFormulaHandFont() {
+  if (!formulaHandFontPromise) {
+    formulaHandFontPromise = (async () => {
+      if (document.fonts.check(`bold 16px ${FORMULA_HAND_FONT}`)) return;
+      try {
+        const face = new FontFace(
+          FORMULA_HAND_FONT,
+          "url(https://fonts.gstatic.com/s/fredoka/v14/XiNrArH2Y-xd5630hZl.ttf)",
+          { weight: "600" },
+        );
+        await face.load();
+        document.fonts.add(face);
+      } catch {
+        // Canvas falls back to rounded system sans if the webfont fails.
+      }
+    })();
+  }
+  return formulaHandFontPromise;
+}
+
+// Hand-drawn formula, rasterized once and filled with jittered particles.
+function formulaParticleGeometry() {
+  const depth = 0.34;
+  const canvasWidth = 2200;
+  const canvasHeight = 1500;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) throw new Error("formula");
+
+  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+  const fontFamily = `${FORMULA_HAND_FONT}, "Arial Rounded MT Bold", "Nunito", "Segoe UI", sans-serif`;
+  const mainSize = 300;
+  const baseline = canvasHeight * 0.78;
+  const outline = mainSize * 0.038;
+
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#fff";
+  ctx.strokeStyle = "#fff";
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.font = `bold ${mainSize}px ${fontFamily}`;
+  const main = "E = mc";
+  const mainWidth = ctx.measureText(main).width;
+  const supSize = Math.round(mainSize * 0.5);
+  ctx.font = `bold ${supSize}px ${fontFamily}`;
+  const supWidth = ctx.measureText("2").width;
+  const totalWidth = mainWidth + supWidth * 0.82;
+  const startX = (canvasWidth - totalWidth) / 2;
+
+  ctx.lineWidth = outline;
+  ctx.font = `bold ${mainSize}px ${fontFamily}`;
+  ctx.strokeText(main, startX, baseline);
+  ctx.fillText(main, startX, baseline);
+  ctx.font = `bold ${supSize}px ${fontFamily}`;
+  const supX = startX + mainWidth - supSize * 0.1;
+  const supY = baseline - mainSize * 0.43;
+  ctx.strokeText("2", supX, supY);
+  ctx.fillText("2", supX, supY);
+
+  const image = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
+  const src = image.data;
+  const filled: number[] = [];
+  for (let i = 0; i < src.length; i += 4) {
+    if (src[i + 3] > 30) filled.push(i / 4);
+  }
+  if (filled.length < 400) throw new Error("formula");
+
+  let seed = 123456789;
+  const rand = () => {
+    seed = (seed * 16807) % 2147483647;
+    return seed / 2147483647;
+  };
+  for (let i = filled.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    const swap = filled[i];
+    filled[i] = filled[j];
+    filled[j] = swap;
+  }
 
   let jitter = 1;
   const nextJitter = (amount: number) => {
@@ -207,235 +282,25 @@ function formulaFromE2(geometry: BufferGeometryType) {
     return (jitter / 2147483647 - 0.5) * amount;
   };
 
-  const letter: number[] = [];
-  const digit: number[] = [];
-  let letterMinX = Infinity;
-  let letterMinY = Infinity;
-  let letterMaxY = -Infinity;
-  let digitMinX = Infinity;
-  let digitMinY = Infinity;
-  let digitMaxX = -Infinity;
-  let digitMaxY = -Infinity;
-  for (let i = 0; i < src.length; i += 3) {
-    const x = src[i] + nextJitter(0.04);
-    const y = src[i + 1] + nextJitter(0.04);
-    const z = src[i + 2] + nextJitter(0.02);
-    if (src[i] < -0.2 || src[i + 1] > 0.46) {
-      digit.push(x, y, z);
-      digitMinX = Math.min(digitMinX, x);
-      digitMaxX = Math.max(digitMaxX, x);
-      digitMinY = Math.min(digitMinY, y);
-      digitMaxY = Math.max(digitMaxY, y);
-    } else {
-      letter.push(x, y, z);
-      letterMinX = Math.min(letterMinX, x);
-      letterMinY = Math.min(letterMinY, y);
-      letterMaxY = Math.max(letterMaxY, y);
-    }
-  }
-
-  const depth = 0.34;
-  const stroke = 0.2;
-  const gap = 0.34;
-  const letterHeight = letterMaxY - letterMinY;
-  const placeCloud = (
-    target: number[],
-    cloud: number[],
-    minX: number,
-    minY: number,
-    dx: number,
-    dy: number,
-    scale: number,
-  ) => {
-    for (let i = 0; i < cloud.length; i += 3) {
-      target.push((cloud[i] - minX) * scale + dx, (cloud[i + 1] - minY) * scale + dy, cloud[i + 2] * scale);
-    }
-  };
-
-  let seed = 123456789;
-  const rand = () => {
-    seed = (seed * 16807) % 2147483647;
-    return seed / 2147483647;
-  };
-  const segmentE: number[] = [];
-  const segmentEq: number[] = [];
-  const segmentM: number[] = [];
-  const segmentC: number[] = [];
-  const segmentTwo: number[] = [];
-
-  const pushTo = (target: number[], x: number, y: number, z: number) => {
-    target.push(x + nextJitter(0.03), y + nextJitter(0.03), z + nextJitter(0.02));
-  };
-
-  const addBox = (target: number[], x: number, y: number, w: number, h: number) => {
-    const perFace = Math.max(10, Math.round((w * h + (w + h) * depth) * 90));
-    const faces: { at: (u: number, v: number) => [number, number, number] }[] = [
-      { at: (u, v) => [x + u * w, y + v * h, -depth / 2] },
-      { at: (u, v) => [x + u * w, y + v * h, depth / 2] },
-      { at: (u, v) => [x + u * w, y, -depth / 2 + v * depth] },
-      { at: (u, v) => [x + u * w, y + h, -depth / 2 + v * depth] },
-      { at: (u, v) => [x, y + u * h, -depth / 2 + v * depth] },
-      { at: (u, v) => [x + w, y + u * h, -depth / 2 + v * depth] },
-    ];
-    for (const face of faces) {
-      for (let n = 0; n < perFace; n++) {
-        const [px, py, pz] = face.at(rand(), rand());
-        pushTo(target, px, py, pz);
-      }
-    }
-  };
-
-  const glyphStroke = (char: string, targetHeight: number, sampleCount: number) => {
-    const fontSize = targetHeight * 1.08;
-    const dpr = 56;
-    const font = `italic 700 ${fontSize * dpr}px "Times New Roman", Times, Georgia, serif`;
-    const probe = document.createElement("canvas").getContext("2d");
-    if (!probe) return { points: [] as number[], width: 0 };
-    probe.font = font;
-    const textWidth = probe.measureText(char).width;
-    const pad = 6 * dpr;
-    const canvasW = Math.ceil(textWidth * dpr) + pad * 2;
-    const canvasH = Math.ceil(fontSize * dpr * 1.18) + pad * 2;
-    const canvas = document.createElement("canvas");
-    canvas.width = canvasW;
-    canvas.height = canvasH;
-    const ctx = canvas.getContext("2d", { willReadFrequently: true });
-    if (!ctx) return { points: [], width: 0 };
-    ctx.font = font;
-    ctx.fillStyle = "#fff";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText(char, pad, canvasH - pad);
-    const image = ctx.getImageData(0, 0, canvasW, canvasH);
-    const filled: { x: number; y: number }[] = [];
-    for (let py = 0; py < canvasH; py++) {
-      for (let px = 0; px < canvasW; px++) {
-        if (image.data[(py * canvasW + px) * 4 + 3] > 40) filled.push({ x: px, y: py });
-      }
-    }
-    if (filled.length === 0) return { points: [], width: 0 };
-    let minPx = canvasW;
-    let minPy = canvasH;
-    let maxPx = 0;
-    let maxPy = 0;
-    for (const p of filled) {
-      minPx = Math.min(minPx, p.x);
-      maxPx = Math.max(maxPx, p.x);
-      minPy = Math.min(minPy, p.y);
-      maxPy = Math.max(maxPy, p.y);
-    }
-    const scale = targetHeight / Math.max(maxPy - minPy, 1);
-    const layoutWidth = (maxPx - minPx) * scale;
-    const points: number[] = [];
-    for (let n = 0; n < sampleCount; n++) {
-      const pick = filled[Math.floor(rand() * filled.length)];
-      const x = (pick.x - minPx) * scale;
-      const y = (maxPy - pick.y) * scale;
-      const z = (rand() - 0.5) * depth;
-      points.push(x + nextJitter(0.04), y + nextJitter(0.04), z + nextJitter(0.02));
-    }
-    return { points, width: layoutWidth };
-  };
-
-  const placeGlyph = (
-    target: number[],
-    char: string,
-    x: number,
-    height: number,
-    samples: number,
-    mirrorX = false,
-  ) => {
-    const glyph = glyphStroke(char, height, samples);
-    for (let i = 0; i < glyph.points.length; i += 3) {
-      const localX = mirrorX ? glyph.width - glyph.points[i] : glyph.points[i];
-      target.push(localX + x, glyph.points[i + 1], glyph.points[i + 2]);
-    }
-    return glyph.width;
-  };
-
-  const subsample = (segment: number[], count: number) => {
-    const verts = segment.length / 3;
-    if (verts === 0) return new Float32Array(0);
-    const picked = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      const j = Math.floor(rand() * verts) * 3;
-      picked[i * 3] = segment[j];
-      picked[i * 3 + 1] = segment[j + 1];
-      picked[i * 3 + 2] = segment[j + 2];
-    }
-    return picked;
-  };
-
-  // Larger world X is screen-left, so the equation is laid out from its right end.
-  const rowHeight = letterHeight * 0.64;
-  const digitScale = (rowHeight * 0.85) / Math.max(digitMaxY - digitMinY, 0.001);
-  const digitWidth = (digitMaxX - digitMinX) * digitScale;
-  const glyphHeight = rowHeight;
-  const glyphSamples = 7200;
-  let cursor = stroke * 0.2;
-
-  const cLeft = cursor;
-  const cWidth = placeGlyph(segmentC, "c", cursor, glyphHeight, glyphSamples, true);
-  cursor += cWidth + gap * 0.85;
-  placeCloud(
-    segmentTwo,
-    digit,
-    digitMinX,
-    digitMinY,
-    cLeft - digitWidth * 0.95,
-    rowHeight * 0.72,
-    digitScale * 0.9,
-  );
-
-  const mWidth = placeGlyph(segmentM, "m", cursor, glyphHeight, glyphSamples);
-  cursor += mWidth + gap;
-
-  const bar = 0.16;
-  const equalsWidth = 0.55;
-  const mid = letterHeight * 0.5;
-  addBox(segmentEq, cursor, mid + 0.1, equalsWidth, bar);
-  addBox(segmentEq, cursor, mid - 0.1 - bar, equalsWidth, bar);
-  cursor += equalsWidth + gap;
-
-  placeCloud(segmentE, letter, letterMinX, letterMinY, cursor, 0, 1);
-
-  const budget = FBO_SIZE * FBO_SIZE;
-  const quotas = {
-    e: Math.round(budget * 0.27),
-    eq: Math.round(budget * 0.08),
-    m: Math.round(budget * 0.27),
-    c: Math.round(budget * 0.27),
-    two:
-      budget -
-      Math.round(budget * 0.27) -
-      Math.round(budget * 0.27) -
-      Math.round(budget * 0.27) -
-      Math.round(budget * 0.08),
-  };
-  const merged = new Float32Array(budget * 3);
-  let offset = 0;
-  for (const chunk of [
-    subsample(segmentE, quotas.e),
-    subsample(segmentEq, quotas.eq),
-    subsample(segmentM, quotas.m),
-    subsample(segmentC, quotas.c),
-    subsample(segmentTwo, quotas.two),
-  ]) {
-    merged.set(chunk, offset);
-    offset += chunk.length;
-  }
-  const points: number[] = Array.from(merged);
-
+  const count = FBO_SIZE * FBO_SIZE;
   let minX = Infinity;
   let minY = Infinity;
   let maxX = -Infinity;
   let maxY = -Infinity;
-  const pad = stroke * 0.95;
-  for (let i = 0; i < points.length; i += 3) {
-    minX = Math.min(minX, points[i]);
-    maxX = Math.max(maxX, points[i]);
-    minY = Math.min(minY, points[i + 1]);
-    maxY = Math.max(maxY, points[i + 1]);
+  const raw = new Float32Array(count * 2);
+  for (let i = 0; i < count; i++) {
+    const pixel = filled[i % filled.length];
+    const x = (pixel % canvasWidth) + rand();
+    const y = Math.floor(pixel / canvasWidth) + rand();
+    raw[i * 2] = x;
+    raw[i * 2 + 1] = y;
+    minX = Math.min(minX, x);
+    maxX = Math.max(maxX, x);
+    minY = Math.min(minY, y);
+    maxY = Math.max(maxY, y);
   }
+
+  const pad = mainSize * 0.06;
   minX -= pad;
   maxX += pad;
   minY -= pad;
@@ -447,14 +312,20 @@ function formulaFromE2(geometry: BufferGeometryType) {
   const yaw = -0.1;
   const cos = Math.cos(yaw);
   const sin = Math.sin(yaw);
-  const positions = new Float32Array(points.length);
-  for (let i = 0; i < points.length; i += 3) {
-    const x = (points[i] - originX) * fit - 0.18;
-    const y = (points[i + 1] - originY) * fit;
-    const z = points[i + 2] * fit;
-    positions[i] = x * cos + z * sin;
-    positions[i + 1] = y;
-    positions[i + 2] = -x * sin + z * cos;
+  const positions = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const x = -(raw[i * 2] - originX) * fit - 0.18;
+    const y = -(raw[i * 2 + 1] - originY) * fit;
+    const z = (rand() - 0.5) * depth;
+    const jx = nextJitter(0.04);
+    const jy = nextJitter(0.04);
+    const jz = nextJitter(0.02);
+    const px = x + jx;
+    const py = y + jy;
+    const pz = z + jz;
+    positions[i * 3] = px * cos + pz * sin;
+    positions[i * 3 + 1] = py;
+    positions[i * 3 + 2] = -px * sin + pz * cos;
   }
   const formula = new BufferGeometry();
   formula.setAttribute("position", new BufferAttribute(positions, 3));
@@ -564,13 +435,13 @@ export function mountMorphScene(el: HTMLElement, { animate }: { animate: boolean
   const loader = new GLTFLoader();
   const ready = Promise.all([
     document.fonts.ready,
+    ensureFormulaHandFont(),
     loader.loadAsync(modelUrl("boy")),
     loader.loadAsync(modelUrl("oni")),
-    loader.loadAsync(modelUrl("e2")),
     loader.loadAsync(modelUrl("tree")),
     loader.loadAsync(modelUrl("horse")),
   ])
-    .then(([, boy, oni, e2, tree, horse]) => {
+    .then(([, , boy, oni, tree, horse]) => {
     if (disposed) return;
 
     const boyGeometry = geometryAt(boy.scene, 0);
@@ -579,7 +450,7 @@ export function mountMorphScene(el: HTMLElement, { animate }: { animate: boolean
     boyGeometry.rotateY(-Math.PI / 2);
     boyGeometry.rotateZ(Math.PI / 3);
 
-    const e2Geometry = formulaFromE2(geometryAt(e2.scene, 0));
+    const e2Geometry = formulaParticleGeometry();
 
     const oniGeometry = geometryAt(oni.scene, 0);
     oniGeometry.scale(0.3, 0.3, 0.3);
