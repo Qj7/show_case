@@ -27,7 +27,7 @@ export function MorphFigures() {
   }, []);
 
   return (
-    <div className="relative h-[80svh] min-h-[32rem] lg:h-auto lg:min-h-[100svh]">
+    <div className="pointer-events-none relative z-10 h-[80svh] min-h-[32rem] lg:absolute lg:inset-y-0 lg:right-0 lg:z-10 lg:h-auto lg:min-h-0 lg:w-[70%]">
       <div
         ref={ref}
         aria-hidden

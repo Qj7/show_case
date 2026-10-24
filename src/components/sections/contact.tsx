@@ -8,12 +8,12 @@ export async function Contact() {
   const t = dict.contact;
 
   return (
-    <section id="contact" aria-labelledby="contact-title" className="relative isolate bg-black">
-      <div className="lg:grid lg:min-h-[100svh] lg:grid-cols-2">
-        <div className="relative flex items-center overflow-hidden px-6 py-28 md:py-40 lg:px-12 lg:py-24 xl:px-16">
+    <section id="contact" aria-labelledby="contact-title" className="relative isolate overflow-hidden bg-black">
+      <div className="relative flex flex-col-reverse lg:grid lg:min-h-[100svh] lg:grid-cols-2">
+        <div className="relative flex items-center px-6 py-28 md:py-40 lg:px-12 lg:py-24 xl:px-16">
           <PeekingCat />
 
-          <div className="reveal relative z-10 mx-auto w-full max-w-xl text-center lg:max-w-2xl">
+          <div className="reveal relative z-20 mx-auto w-full max-w-xl text-center lg:max-w-2xl">
             <p className="mb-6 text-xs font-medium tracking-[0.2em] text-muted uppercase">{t.eyebrow}</p>
             <h2 id="contact-title" className="font-display text-[clamp(2.4rem,7vw,5rem)] leading-[1.02] font-semibold tracking-[-0.03em] text-balance lg:text-[clamp(2.4rem,3.4vw,4.25rem)]">
               {t.title}

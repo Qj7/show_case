@@ -49,7 +49,7 @@ export function PeekingCat() {
 
   return (
     <div
-      className={`absolute right-2 bottom-0 z-20 w-44 sm:right-6 sm:w-52 md:right-10 md:w-72 ${
+      className={`absolute right-2 bottom-0 z-20 hidden w-44 sm:right-6 sm:w-52 md:right-10 md:w-72 lg:block ${
         dragging
           ? ""
           : "transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none"
